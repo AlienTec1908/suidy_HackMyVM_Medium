@@ -1,12 +1,12 @@
-# SuidyRevenge - HackMyVM (Hard)
+# suidy - HackMyVM (Medium)
  
 ![suidy.png](suidy.png)
 
 ## Übersicht
 
-*   **VM:** SuidyRevenge (obwohl der Link "suidy" lautet, wird im Text "SuidyRevenge" verwendet)
+*   **VM:** suidy
 *   **Plattform:** HackMyVM (https://hackmyvm.eu/machines/machine.php?vm=suidy)
-*   **Schwierigkeit:** Hard
+*   **Schwierigkeit:** Medium
 *   **Autor der VM:** DarkSpirit
 *   **Datum des Writeups:** 17. Oktober 2022
 *   **Original-Writeup:** https://alientec1908.github.io/suidy_HackMyVM_Medium/
@@ -14,7 +14,7 @@
 
 ## Kurzbeschreibung
 
-Das Ziel der "SuidyRevenge"-Challenge war die Erlangung von User- und Root-Rechten. Der Weg begann mit der Entdeckung von Benutzer-Credentials (`theuser:different`) in einem HTML-Kommentar auf dem Webserver (Port 80). Dies ermöglichte den initialen SSH-Login als `theuser`. Die User-Flag wurde in dessen Home-Verzeichnis gefunden. Die Privilegieneskalation erfolgte in mehreren Stufen: Zuerst wurde ein SUID/SGID-Binary (`/home/suidy/suidyyyyy`) gefunden, das bei Ausführung eine Shell als Benutzer `suidy` gewährte. Als `suidy` wurde eine Notiz (`note.txt`) gefunden, die erklärte, dass ein Root-Skript regelmäßig das SUID-Bit auf `suidyyyyy` setzt, aber dabei die Dateigröße prüft. Der finale Schritt zur Root-Eskalation bestand darin, einen eigenen C-Code für eine Root-Shell direkt auf der Zielmaschine zu kompilieren, das ursprüngliche `suidyyyyy`-Binary damit zu überschreiben und (wahrscheinlich durch das Root-Skript) das SUID-Bit erneut setzen zu lassen. Die Ausführung des modifizierten `suidyyyyy` führte dann zu einer Root-Shell.
+Das Ziel der Challenge (im Text als "SuidyRevenge" bezeichnet) war die Erlangung von User- und Root-Rechten. Der Weg begann mit der Entdeckung von Benutzer-Credentials (`theuser:different`) in einem HTML-Kommentar auf dem Webserver (Port 80). Dies ermöglichte den initialen SSH-Login als `theuser`. Die User-Flag wurde in dessen Home-Verzeichnis gefunden. Die Privilegieneskalation erfolgte in mehreren Stufen: Zuerst wurde ein SUID/SGID-Binary (`/home/suidy/suidyyyyy`) gefunden, das bei Ausführung eine Shell als Benutzer `suidy` gewährte. Als `suidy` wurde eine Notiz (`note.txt`) gefunden, die erklärte, dass ein Root-Skript regelmäßig das SUID-Bit auf `suidyyyyy` setzt, aber dabei die Dateigröße prüft. Der finale Schritt zur Root-Eskalation bestand darin, einen eigenen C-Code für eine Root-Shell direkt auf der Zielmaschine zu kompilieren, das ursprüngliche `suidyyyyy`-Binary damit zu überschreiben und (wahrscheinlich durch das Root-Skript) das SUID-Bit erneut setzen zu lassen. Die Ausführung des modifizierten `suidyyyyy` führte dann zu einer Root-Shell.
 
 ## Disclaimer / Wichtiger Hinweis
 
@@ -45,13 +45,13 @@ Die in diesem Writeup beschriebenen Techniken und Werkzeuge dienen ausschließli
 
 ## Lösungsweg (Zusammenfassung)
 
-Der Angriff auf die Maschine "SuidyRevenge" gliederte sich in folgende Phasen:
+Der Angriff auf die Maschine (im Text als "SuidyRevenge" bezeichnet) gliederte sich in folgende Phasen:
 
 1.  **Reconnaissance & Web Enumeration:**
     *   IP-Findung mit `arp-scan` (`192.168.2.155`).
     *   `nmap`-Scan identifizierte offene Ports: 22 (SSH - OpenSSH 7.9p1) und 80 (HTTP - Nginx 1.14.2).
     *   `gobuster` auf Port 80 fand nur `/index.html`.
-    *   Manuelle Untersuchung des Quellcodes von `/index.html` offenbarte einen HTML-Kommentar mit den Credentials `theuser:different` und einen Hinweis auf ein Verzeichnis `/supersecure` (letzteres spielte im weiteren Verlauf keine Rolle).
+    *   Manuelle Untersuchung des Quellcodes von `/index.html` offenbarte einen HTML-Kommentar mit den Credentials `theuser:different`.
 
 2.  **Initial Access (SSH Login):**
     *   Erfolgreicher SSH-Login als `theuser` mit dem Passwort `different` (`ssh theuser@192.168.2.155`).
@@ -74,7 +74,7 @@ Der Angriff auf die Maschine "SuidyRevenge" gliederte sich in folgende Phasen:
         ```
     *   Kompilieren des C-Programms auf dem Ziel mit `gcc ben.c -o ben`.
     *   Überschreiben des ursprünglichen `/home/suidy/suidyyyyy`-Binaries mit dem neu kompilierten `ben`-Binary (`mv ben suidyyyyy`).
-    *   Das SUID-Bit wurde entweder durch das Root-Skript erneut gesetzt oder manuell mit `chmod 4755 suidyyyyy` (obwohl die Berechtigung dafür als `suidy` fraglich ist; das Root-Skript ist wahrscheinlicher).
+    *   Das SUID-Bit wurde entweder durch das Root-Skript erneut gesetzt oder manuell mit `chmod 4755 suidyyyyy`.
     *   Ausführung des modifizierten `/home/suidy/suidyyyyy` als `suidy` startete eine Shell mit Root-Rechten.
     *   Root-Flag `HMVvoilarootlala` in `/root/root.txt` gelesen.
 
@@ -93,4 +93,4 @@ Der Angriff auf die Maschine "SuidyRevenge" gliederte sich in folgende Phasen:
 
 ## Tags
 
-`HackMyVM`, `SuidyRevenge`, `Hard`, `SUID Exploitation`, `Credentials in Comments`, `Lateral Movement`, `C Exploitation`, `Linux`, `Privilege Escalation`
+`HackMyVM`, `suidy`, `Medium`, `SUID Exploitation`, `Credentials in Comments`, `Lateral Movement`, `C Exploitation`, `Linux`, `Privilege Escalation`
